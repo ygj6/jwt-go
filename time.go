@@ -2,6 +2,7 @@ package jwt
 
 import (
 	"encoding/json"
+	"github.com/shopspring/decimal"
 	"reflect"
 	"time"
 )
@@ -24,7 +25,8 @@ type Time struct {
 // NewTime creates a new Time value from a float64, following
 // the JWT spec.
 func NewTime(t float64) *Time {
-	return At(time.Unix(0, int64(t*float64(time.Second))))
+	var v int64 = decimal.NewFromFloat(t).Mul(decimal.NewFromFloat(float64(time.Second))).IntPart()
+	return At(time.Unix(0, v))
 }
 
 // Now returns a new Time value using the current time.
