@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branch: release_4_0_0
+  pull_request:
+    branch: release_4_0_0
+
+jobs:
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        go: [1.11, 1.12, 1.13, 1.14, tip]
+        os: [ubuntu-latest]
+    steps:
+
+    - name: Set up Go 1.x
+      if: matrix.go != 'tip'
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go }}
+      id: go
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+    - name: Install Go tip
+      if: matrix.go == 'tip'
+      run: |
+        git clone --depth=1 https://go.googlesource.com/go $HOME/gotip
+        cd $HOME/gotip/src
+        ./make.bash
+        echo "::set-env name=GOROOT::$HOME/gotip"
+        echo "::add-path::$HOME/gotip/bin"
+        echo "::add-path::$(go env GOPATH)/bin"
+    
+    - name: Test
+      run: |
+        go vet ./...
+        go test -v ./...
+    - name: Test with coverage
+      run: go test -coverpkg=./,./request -coverprofile=coverage.data -timeout=5s
+    - name: Upload code coverage to codecov
+      if: matrix.go == 'tip'
+      uses: codecov/codecov-action@v1
+      with:
+        file: ./coverage.data
